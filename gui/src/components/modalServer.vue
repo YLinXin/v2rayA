@@ -231,6 +231,10 @@
               label-position="on-border">
               <b-input v-model="v2ray.xhttpRawJson" type="textarea" placeholder='{"scy": "chacha20-poly1305"}' expanded />
             </b-field>
+            <b-field v-show="v2ray.net === 'xhttp'" label="xhttp Extra"
+              label-position="on-border">
+              <b-input v-model="v2ray.xhttpExtra" type="textarea" placeholder='{"xPaddingBytes":"100-1000"}' expanded />
+            </b-field>
           </div>
         </b-tab-item>
 
@@ -686,6 +690,7 @@ export default {
         key: "none",
         xhttpMode: "auto",
         xhttpRawJson: "",
+        xhttpExtra: "",
         maxEarlyData: "",
         earlyDataHeaderName: "",
         multiMode: false,
@@ -948,8 +953,9 @@ export default {
           tls: obj.tls,
           key: obj.key,
           quicSecurity: obj.quicSecurity,
-          xhttpMode: obj.xhttpMode || "auto",
+           xhttpMode: obj.xhttpMode || "auto",
           xhttpRawJson: obj.xhttpRawJson || "",
+          xhttpExtra: obj.xhttpExtra || "",
           protocol: "vmess",
         };
       } else if (url.toLowerCase().startsWith("vless://")) {
@@ -974,8 +980,9 @@ export default {
           flow: u.params.flow || u.params.flows || "",
           scy: u.params.encryption || "none",
           key: u.params.key,
-          xhttpMode: u.params.xhttpMode || "auto",
+          xhttpMode: u.params.xhttpMode || u.params.mode || "auto",
           xhttpRawJson: u.params.xhttpRawJson || "",
+          xhttpExtra: u.params.extra || u.params.xhttpExtra || "",
           maxEarlyData: u.params.maxEarlyData || "",
           earlyDataHeaderName: u.params.earlyDataHeaderName || "",
           multiMode: u.params.multiMode === "true" || u.params.multiMode === "1",
@@ -1202,6 +1209,7 @@ export default {
             quicSecurity: srcObj.quicSecurity,
             xhttpMode: srcObj.xhttpMode,
             xhttpRawJson: srcObj.xhttpRawJson,
+            xhttpExtra: srcObj.xhttpExtra,
           };
           return "vmess://" + Base64.encode(JSON.stringify(obj));
         case "vless":
@@ -1261,6 +1269,9 @@ export default {
             query.xhttpMode = srcObj.xhttpMode;
             if (srcObj.xhttpMode === "packet") {
               query.xhttpRawJson = srcObj.xhttpRawJson;
+            }
+            if (srcObj.xhttpExtra) {
+              query.extra = srcObj.xhttpExtra;
             }
           }
           return generateURL({

@@ -2,6 +2,7 @@ package serverObj
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net"
 	"net/url"
@@ -30,36 +31,37 @@ func init() {
 }
 
 type V2Ray struct {
-	Ps                  string `json:"ps"`
-	Address             string `json:"add" server:"server" hostname:"hostname" address:"address"`
-	Port                string `json:"port"`
-	ID                  string `json:"id"`
-	Aid                 string `json:"aid"`
-	Security            string `json:"scy"`
-	Net                 string `json:"net"`
-	Type                string `json:"type"`
-	Host                string `json:"host"`
-	SNI                 string `json:"sni,omitempty"`
-	Path                string `json:"path"`
-	TLS                 string `json:"tls"`
-	Fingerprint         string `json:"fingerprint,omitempty"`
-	PublicKey           string `json:"pbk,omitempty"`
-	ShortId             string `json:"sid,omitempty"`
-	SpiderX             string `json:"spx,omitempty"`
-	Flow                string `json:"flow,omitempty"`
-	Alpn                string `json:"alpn,omitempty"`
-	Key                 string `json:"key,omitempty"`
-	QuicSecurity        string `json:"quicSecurity"`
-	XHTTPMode           string `json:"xhttpMode,omitempty"`
-	MaxEarlyData        string `json:"maxEarlyData,omitempty"`
-	EarlyDataHeaderName string `json:"earlyDataHeaderName,omitempty"`
-	MultiMode           string `json:"multiMode,omitempty"`
-	IdleTimeout         string `json:"idleTimeout,omitempty"`
-	HealthCheckTimeout  string `json:"healthCheckTimeout,omitempty"`
-	PermitWithoutStream string `json:"permitWithoutStream,omitempty"`
-	InitialWindowsSize  string `json:"initialWindowsSize,omitempty"`
-	V                   string `json:"v"`
-	Protocol            string `json:"protocol"`
+	Ps                  string          `json:"ps"`
+	Address             string          `json:"add" server:"server" hostname:"hostname" address:"address"`
+	Port                string          `json:"port"`
+	ID                  string          `json:"id"`
+	Aid                 string          `json:"aid"`
+	Security            string          `json:"scy"`
+	Net                 string          `json:"net"`
+	Type                string          `json:"type"`
+	Host                string          `json:"host"`
+	SNI                 string          `json:"sni,omitempty"`
+	Path                string          `json:"path"`
+	TLS                 string          `json:"tls"`
+	Fingerprint         string          `json:"fingerprint,omitempty"`
+	PublicKey           string          `json:"pbk,omitempty"`
+	ShortId             string          `json:"sid,omitempty"`
+	SpiderX             string          `json:"spx,omitempty"`
+	Flow                string          `json:"flow,omitempty"`
+	Alpn                string          `json:"alpn,omitempty"`
+	Key                 string          `json:"key,omitempty"`
+	QuicSecurity        string          `json:"quicSecurity"`
+	XHTTPMode           string          `json:"xhttpMode,omitempty"`
+	MaxEarlyData        string          `json:"maxEarlyData,omitempty"`
+	EarlyDataHeaderName string          `json:"earlyDataHeaderName,omitempty"`
+	MultiMode           string          `json:"multiMode,omitempty"`
+	IdleTimeout         string          `json:"idleTimeout,omitempty"`
+	HealthCheckTimeout  string          `json:"healthCheckTimeout,omitempty"`
+	PermitWithoutStream string          `json:"permitWithoutStream,omitempty"`
+	InitialWindowsSize  string          `json:"initialWindowsSize,omitempty"`
+	XHTTPExtra          json.RawMessage `json:"xhttpExtra,omitempty"`
+	V                   string          `json:"v"`
+	Protocol            string          `json:"protocol"`
 }
 
 func NewV2Ray(link string) (ServerObj, error) {
@@ -136,7 +138,14 @@ func ParseVlessURL(vless string) (data *V2Ray, err error) {
 	if data.Net == "xhttp" {
 		data.XHTTPMode = u.Query().Get("xhttpMode")
 		if data.XHTTPMode == "" {
+			data.XHTTPMode = u.Query().Get("mode")
+		}
+		if data.XHTTPMode == "" {
 			data.XHTTPMode = "auto"
+		}
+		extraStr := u.Query().Get("extra")
+		if extraStr != "" {
+			data.XHTTPExtra = json.RawMessage(extraStr)
 		}
 	}
 	return data, nil
@@ -269,10 +278,7 @@ func (v *V2Ray) Configuration(info PriorInfo) (c Configuration, err error) {
 				},
 			}
 		case "vless":
-			security := v.Security
-			if security == "" {
-				security = "none"
-			}
+			security := "none"
 			core.Settings.Vnext = []coreObj.Vnext{
 				{
 					Address: v.Address,
@@ -417,14 +423,16 @@ func (v *V2Ray) Configuration(info PriorInfo) (c Configuration, err error) {
 		case "xhttp":
 			if v.Host != "" {
 				core.StreamSettings.XHTTPSettings = &coreObj.XHTTPSettings{
-					Path: v.Path,
-					Host: v.Host,
-					Mode: v.XHTTPMode,
+					Path:  v.Path,
+					Host:  v.Host,
+					Mode:  v.XHTTPMode,
+					Extra: v.XHTTPExtra,
 				}
 			} else {
 				core.StreamSettings.XHTTPSettings = &coreObj.XHTTPSettings{
-					Path: v.Path,
-					Mode: v.XHTTPMode,
+					Path:  v.Path,
+					Mode:  v.XHTTPMode,
+					Extra: v.XHTTPExtra,
 				}
 			}
 		default:
@@ -521,6 +529,9 @@ func (v *V2Ray) ExportToURL() string {
 			setValue(&query, "path", v.Path)
 			setValue(&query, "host", v.Host)
 			setValue(&query, "xhttpMode", v.XHTTPMode)
+			if len(v.XHTTPExtra) > 0 {
+				setValue(&query, "extra", string(v.XHTTPExtra))
+			}
 		}
 		if v.Security != "" && v.Security != "none" {
 			setValue(&query, "encryption", v.Security)

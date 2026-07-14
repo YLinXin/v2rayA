@@ -319,9 +319,10 @@ type QuicSettings struct {
 	Security string    `json:"security"`
 }
 type XHTTPSettings struct {
-	Path string `json:"path"`
-	Host string `json:"host,omitempty"`
-	Mode string `json:"mode,omitempty"`
+	Path  string          `json:"path"`
+	Host  string          `json:"host,omitempty"`
+	Mode  string          `json:"mode,omitempty"`
+	Extra json.RawMessage `json:"extra,omitempty"`
 }
 // WireGuard 出站配置
 type WireGuardSettings struct {
